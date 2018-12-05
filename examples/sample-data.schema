@@ -1,0 +1,41 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "ID",
+      "AttributeType": "N"
+    },
+    {
+      "AttributeName": "timestamp",
+      "AttributeType": "N"
+    }
+  ],
+  "TableName": "example-data",
+  "KeySchema": [
+    {
+      "AttributeName": "ID",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "timestamp",
+      "KeyType": "RANGE"
+    }    
+
+  ],
+  "TableStatus": "ACTIVE",
+  "CreationDateTime": "2017-12-05T14:29:24.573Z",
+  "ProvisionedThroughput": {
+    "NumberOfDecreasesToday": 0,
+    "ReadCapacityUnits": 5,
+    "WriteCapacityUnits": 5
+  },
+  "TableSizeBytes": 38,
+  "ItemCount": 1,
+  "TableArn": "arn:aws:dynamodb:ap-southeast-2:123456789012:table/example-data",
+  "TableId": "1234abcd-1234-5678-9012-abcdef012345",
+  "StreamSpecification": {
+    "StreamEnabled": true,
+    "StreamViewType": "NEW_AND_OLD_IMAGES"
+  },
+  "LatestStreamLabel": "2017-12-05T14:34:26.334",
+  "LatestStreamArn": "arn:aws:dynamodb:ap-southeast-2:123456789012:table/example-data/stream/2017-12-05T14:34:26.334"
+}
