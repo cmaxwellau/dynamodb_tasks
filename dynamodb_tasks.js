@@ -7,7 +7,7 @@ const streamToPromise = require('stream-to-promise');
 const fs = require('fs');
 const bluebird = require('bluebird');
 const debug = require('debug')('dynamo_tasks');
-const _ = require('lodash');
+const _ = require('lodash');  
 
 bluebird.promisifyAll(fs);
 
@@ -51,12 +51,11 @@ const methods = {
 };
 
 const cli_tablename = (cli.flags.table !== undefined) ? cli.flags.table : false; 
-const cli_filename = (cli.flags.file !== undefined) ? cli.flags.file : false; 
+const cli_filename = (cli.flags.file !== undefined) ? cli.flags.file : false;
 
 if (cli.flags.profile !== undefined)       { AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: cli.flags.profile});}
 if (cli.flags.region !== undefined)        { AWS.config.update({region: cli.flags.region});}
 if (cli.flags.maxRetries !== undefined)    { AWS.config.maxRetries = cli.flags.maxRetries;}
-if (cli.flags.waitForActive !== undefined) { const waitForActive = cli.flags.waitForActive;}
 
 const dynamodb = new AWS.DynamoDB();
 
@@ -139,13 +138,13 @@ function importSchema(targetTableName, inputFileName){
   fs.readFileAsync(inputFileName)
     .then(data => JSON.parse(data))
     .then(json => {
-      if (tableName) json.TableName = targetTableName;
+      if (targetTableName) json.TableName = targetTableName;
 
       filterTableSchema(json);
 
       return dynamodb.createTable(json).promise()
         .then(() => {
-          if (waitForActive !== undefined) {
+          if (cli.flags.waitForActive !== undefined) {
             return doWaitForActive();
           }
         });
@@ -207,24 +206,25 @@ function importData(targetTableName, inputFileName) {
 
   const logProgress = () => console.log('Imported', n, 'items');
   const logThrottled = _.throttle(logProgress, 5000, { trailing: false });
+  const batchSize = 25;
 
   readStream
     .pipe(parseStream)
     .on('data', data => {
       items.push({'PutRequest': {'Item' : data}});   
       n++;
-      if(items.length==25){
+      if(items.length==batchSize){
         parseStream.pause();
         dynamodb.batchWriteItem({RequestItems: {[targetTableName]: items}}).promise()
         .then(() => items=[])
         .then(() => parseStream.resume())
         .then(() => logThrottled())
-        .catch(err => parseStream.emit('error', err));        
+        .catch(err => parseStream.emit('error', err));
       }
     })
     .on('end', () => {
       if(items.length>0){
-        dynamodb.batchWriteItem({RequestItems: {[targetTableName]: items}}).promise()
+        ddbBatchWriteItem({RequestItems: {[targetTableName]: items}}).promise()
         .then(() => items=[])
         .catch(err => parseStream.emit('error', err));
       }
@@ -238,7 +238,7 @@ function importData(targetTableName, inputFileName) {
       parseStream.on('end', resolve);
       parseStream.on('error', reject);
     })
-    .then(() => logProgress());
+    .then(() => console.log('Import complete. Imported ', n, 'items'));
 }
 
 function exportDataCli() {
@@ -258,7 +258,7 @@ function exportAllDataCli() {
 }
 
 function exportData(targetTableName, outputFileName=null) {
-  if(!outputFileName) outputFileName = sanitizeFilename(tableName + '.dynamodata');
+  if(!outputFileName) outputFileName = sanitizeFilename(targetTableName + '.dynamodata');
   const writeStream = fs.createWriteStream(outputFileName);
   const stringify = JSONStream.stringify();
   stringify.pipe(writeStream);
