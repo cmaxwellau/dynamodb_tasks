@@ -13,33 +13,40 @@ bluebird.promisifyAll(fs);
 
 const cli = meow(`
 	Usage
-	  $ node dynamodb_tasks.js export-schema <option> Export the schema
-	  $ node dynamodb_tasks.js export-table <option> Export the table
-	  $ node dynamodb_tasks.js export-table <option> Export the table
+    $ node dynamodb_tasks.js <action> <options> 
 
-	  AWS credentials are specified in ~/.aws/credentials
+  Actions:
+    list-tables         List all tables available for export
+    export-schema       Export table schema
+    export-data         Export table data
+    export-all-schema   Export all table schemas. Table name will be used for the filename
+    export-all-data     Export all table data. Table name will be used for the filename
+    import-schema       Import table schema
+    import-data         Import table data
 
-	Options
-	  --region AWS region
-	  --table Table to export
-	  --file File name to export to 
+	Options:
+    --profile           Name of AWS CLI profile contained in ~/.aws/credentials
+	  --region            Target AWS region
+	  --table             Name of DynamoDB table to import/export
+	  --file              File name to use to import/export of table data and schemas
 
 	Examples
+    node dynamodb_tasks.js list-tables --region=us-east-1
 	  node dynamodb_tasks.js export-schema --region=us-east-1 --table=example_table --file=example_file
-	  node dynamodb_tasks.js export-table --region=us-east-1  --table=example_table --file=example_file
+	  node dynamodb_tasks.js export-data --region=us-east-1  --table=example_table --file=example_file
 	  node dynamodb_tasks.js import-schema --region=us-east-1  --table=example_table --file=example_file
 	  node dynamodb_tasks.js import-data --region=us-east-1  --table=example_table --file=example_file
 
 	`);
 
 const methods = {
-  'export-schema': exportSchemaCli,
-  'import-schema': importSchemaCli,
-  'list-tables': listTablesCli,
-  'export-all-schema': exportAllSchemaCli,
-  'export-table': exportDataCli,
-  'export-all-data': exportAllDataCli,
-  'import-data': importDataCli
+  'list-tables': listTablesCli
+ ,'export-schema': exportSchemaCli
+ ,'export-data': exportDataCli
+ ,'export-all-data': exportAllDataCli
+ ,'export-all-schema': exportAllSchemaCli
+ ,'import-schema': importSchemaCli
+ ,'import-data': importDataCli
 };
 if (cli.flags.maxRetries !== undefined) AWS.config.maxRetries = cli.flags.maxRetries;
 
@@ -89,7 +96,7 @@ function exportSchemaCli(cli) {
   const tableName = cli.flags.table;
 
   if (!tableName) {
-    console.error('--table is requred')
+    console.error('--table is requred for this action')
     cli.showHelp();
   }
 
@@ -123,7 +130,7 @@ function importSchemaCli(cli) {
   const waitForActive = cli.flags.waitForActive;
 
   if (!file) {
-    console.error('--file is required')
+    console.error('--file is requred for this action')
     cli.showHelp();
   }
 
@@ -194,7 +201,7 @@ function importDataCli(cli) {
     cli.showHelp();
   }
   if (!file) {
-    console.error('--file is required')
+    console.error('--file is required for this action')
     cli.showHelp();
   }
 
@@ -232,7 +239,7 @@ function exportDataCli(cli) {
   const tableName = cli.flags.table;
 
   if (!tableName) {
-    console.error('--table is requred')
+    console.error('--table is requred for this action')
     cli.showHelp();
   }
 
