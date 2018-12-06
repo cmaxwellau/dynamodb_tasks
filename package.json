@@ -13,6 +13,7 @@
     "jsonstream": "^1.0.3",
     "lodash": "^4.17.11",
     "meow": "^5.0.0",
+    "sanitize-filename": "^1.6.1",
     "stream-to-promise": "^2.2.0"
   }
 }

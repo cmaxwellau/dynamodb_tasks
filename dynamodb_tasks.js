@@ -8,7 +8,7 @@ const fs = require('fs');
 const bluebird = require('bluebird');
 const debug = require('debug')('dynamo_tasks');
 const _ = require('lodash');  
-
+const sanitize = require("sanitize-filename");
 bluebird.promisifyAll(fs);
 
 const cli = meow(`
@@ -107,7 +107,7 @@ function exportAllSchemaCli() {
 }
 
 function exportSchema(targetTableName, outputFileName=null) {
-  if(!outputFileName) outputFileName = sanitizeFilename(targetTableName + '.dynamoschema');
+  if(!outputFileName) outputFileName = sanitize(targetTableName + '.dynamoschema');
   return dynamodb.describeTable({ TableName: targetTableName }).promise()
     .then(data => {
       return fs.writeFileAsync(outputFileName, JSON.stringify(data.Table, null, 2))
@@ -258,7 +258,7 @@ function exportAllDataCli() {
 }
 
 function exportData(targetTableName, outputFileName=null) {
-  if(!outputFileName) outputFileName = sanitizeFilename(targetTableName + '.dynamodata');
+  if(!outputFileName) outputFileName = sanitize(targetTableName + '.dynamodata');
   const writeStream = fs.createWriteStream(outputFileName);
   const stringify = JSONStream.stringify();
   stringify.pipe(writeStream);
