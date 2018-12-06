@@ -1,8 +1,5 @@
 # dynamodb_tasks
-This is a tool for exporting and importing table data and schemas from DynamoDB
-## Installation
-* Git clone repository / unzip compressed file
-* $ npm install 
+This is a tool for exporting and importing table data and schemas from DynamoDB.
 
 ## Usage
 ```
@@ -24,30 +21,65 @@ $ node dynamodb_tasks.js <action> <options>
       --file              File name to use to import/export of table data and schemas
 ```
 
+## Installation
+* Git clone this repository.
+* ```npm install``` to download and install node dependencies.
 
-## Example
+## Configuration
+###AWS Region 
+You can set a default region in the CLI environment. This can still be overriden by an explicit command line option.
 
-List all DynamoDB tables.
 ```
-$ node dynamodb_tasks.js list-tables --region=us-east-1
-```
-
-Export DynamoDB Table Schema
-```
-$ node dynamodb_tasks.js export-schema --region=us-east-1 --table=example_table --file=example_file
-```
-
-Export DynamoDB Table Data
-```
-$ node dynamodb_tasks.js export-data --region=us-east-1  --table=example_table --file=example_file
+$ export AWS_REGION=ap-southeast-2
 ```
 
-Import DynamoDB Table Schema
+###AWS Credentials
+Configure AWS credentials using a profile in ~/.aws/credentials and refer to it through an environment variable:
+
 ```
-$ node dynamodb_tasks.js import-schema --region=us-east-1  --table=example_table --file=example_file
+$ export AWS_PROFILE=my-dev-account-profile
 ```
 
-Import DynamoDB Table Data
+You can also configure explicit credentials using environment variables:
+
 ```
-$ node dynamodb_tasks.js import-data --region=us-east-1  --table=example_table --file=example_file
+$ export AWS_ACCESS_KEY_ID=AKIA12345678ABCDEAFGH
+$ export AWS_SECRET_ACCESS_KEY=12345678ABCDEFGHabcdefgh12345678abcdefgh
+```
+
+
+
+
+
+
+## Usage Examples
+
+### List all DynamoDB tablesexzpo
+
+```
+$ node dynamodb_tasks.js list-tables
+```
+
+### Export DynamoDB Table Schema
+
+```
+$ node dynamodb_tasks.js export-schema --table=example_table --file=example_file
+```
+
+### Export DynamoDB Table Data
+
+```
+$ node dynamodb_tasks.js export-data --table=example_table --file=example_file
+```
+
+### Import DynamoDB Table Schema
+
+```
+$ node dynamodb_tasks.js import-schema --table=example_table --file=example_file
+```
+
+### Import DynamoDB Table Data
+
+```
+$ node dynamodb_tasks.js import-data--table=example_table --file=example_file
 ```
