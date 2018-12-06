@@ -54,7 +54,7 @@ $ export AWS_SECRET_ACCESS_KEY=12345678ABCDEFGHabcdefgh12345678abcdefgh
 
 ## Usage Examples
 
-### List all DynamoDB tablesexzpo
+### List all DynamoDB tables
 
 ```
 $ node dynamodb_tasks.js list-tables
