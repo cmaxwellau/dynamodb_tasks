@@ -9,35 +9,33 @@ const bluebird = require('bluebird');
 const debug = require('debug')('dynamo_tasks');
 const _ = require('lodash');  
 const sanitize = require("sanitize-filename");
-bluebird.promisifyAll(fs);
 
 const cli = meow(`
 	Usage
     $ node dynamodb_tasks.js <action> <options> 
 
   Actions:
-    list-tables         List all tables available for export
-    export-schema       Export table schema
-    export-data         Export table data
-    export-all-schema   Export all table schemas. Table name will be used for the filename
-    export-all-data     Export all table data. Table name will be used for the filename
-    import-schema       Import table schema
-    import-data         Import table data
+    list-tables        List all tables available for export
+    export-schema      Export table schema
+    export-data        Export table data
+    export-all-schema  Export all table schemas. Table name will be used for the filename
+    export-all-data    Export all table data. Table name will be used for the filename
+    import-schema      Import table schema
+    import-data        Import table data
 
 	Options:
-	  --table             Name of dynamodb table to import/export
-	  --file              File name to use to import/export of table data and schemas
-    --profile           Optional: Name of specific AWS CLI profile contained in ~/.aws/credentials
-    --region            Optional: Over-ride profile region, or environment variable AWS_REGION
-
+	  --table            Name of dynamodb table to import/export
+	  --file             Optional for export functions: File name to use to import/export of table data and schemas
+    --profile          Optional: Name of specific AWS CLI profile contained in ~/.aws/credentials
+    --region           Optional: Over-ride profile region, or environment variable AWS_REGION
+    --waitForActive    Optional: Wait for dynamo table creation to complete before returning from schema import 
 
 	Examples
-    node dynamodb_tasks.js list-tables --region=us-east-1
-	  node dynamodb_tasks.js export-schema --region=us-east-1 --table=example_table --file=example_file
-	  node dynamodb_tasks.js export-data --region=us-east-1  --table=example_table --file=example_file
-	  node dynamodb_tasks.js import-schema --region=us-east-1  --table=example_table --file=example_file
-	  node dynamodb_tasks.js import-data --region=us-east-1  --table=example_table --file=example_file
-
+    node dynamodb_tasks.js list-tables 
+	  node dynamodb_tasks.js export-schema --table=example_table --file=example_file
+	  node dynamodb_tasks.js export-data --table=example_table --file=example_file
+	  node dynamodb_tasks.js import-schema --table=example_table --file=example_file
+	  node dynamodb_tasks.js import-data --table=example_table --file=example_file
 	`);
 
 const methods = {
@@ -52,15 +50,27 @@ const methods = {
 
 const cli_tablename = (cli.flags.table !== undefined) ? cli.flags.table : false; 
 const cli_filename = (cli.flags.file !== undefined) ? cli.flags.file : false;
-
-if (cli.flags.profile !== undefined)       { AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: cli.flags.profile});}
 if (cli.flags.region !== undefined)        { AWS.config.update({region: cli.flags.region});}
-if (cli.flags.maxRetries !== undefined)    { AWS.config.maxRetries = cli.flags.maxRetries;}
+if (cli.flags.profile !== undefined)       { AWS.config.credentials = new AWS.SharedIniFileCredentials({profile: cli.flags.profile});}
+
+//console.log(AWS.config);
+
+if(!AWS.config.region){
+    console.error('Error: No AWS region has been set. Please set AWS_REGION environment variable, or specify one with the --region command line option.');
+    cli.showHelp();
+    return false;
+}
+
+if(!(AWS.config.credentials && AWS.config.credentials.accessKeyId)) {
+    console.error('Error: No AWS credentials found. Please set AWS_REGION environment variable, or specify one with the --profile command line option.');
+    cli.showHelp();
+    return false;
+}
 
 const dynamodb = new AWS.DynamoDB();
-
 const method = methods[cli.input[0]] || cli.showHelp();
 
+bluebird.promisifyAll(fs);
 bluebird.resolve(method.call(undefined, cli))
   .catch(err => {
     console.error(err.stack);
@@ -91,19 +101,12 @@ function listTables() {
 }
 
 function exportSchemaCli() {
-  if (!!cli_tablename) {
+  if (!cli_tablename) {
     console.error('Error: --table option is required for this action');
     cli.showHelp();
     return false;
   }
   return exportSchema(cli_tablename, cli_filename || null)
-}
-
-function exportAllSchemaCli() {
-  return bluebird.map(listTables(), tableName => {
-    console.log(`Exporting ${tableName}`);
-    return exportSchema(tableName, null);
-  }, { concurrency: 1 });
 }
 
 function exportSchema(targetTableName, outputFileName=null) {
@@ -112,6 +115,13 @@ function exportSchema(targetTableName, outputFileName=null) {
     .then(data => {
       return fs.writeFileAsync(outputFileName, JSON.stringify(data.Table, null, 2))
     });
+}
+
+function exportAllSchemaCli() {
+  return bluebird.map(listTables(), tableName => {
+    console.log(`Exporting ${tableName}`);
+    return exportSchema(tableName, null);
+  }, { concurrency: 1 });
 }
 
 function importSchemaCli() {
@@ -224,7 +234,7 @@ function importData(targetTableName, inputFileName) {
     })
     .on('end', () => {
       if(items.length>0){
-        ddbBatchWriteItem({RequestItems: {[targetTableName]: items}}).promise()
+        dynamodb.batchWriteItem({RequestItems: {[targetTableName]: items}}).promise()
         .then(() => items=[])
         .catch(err => parseStream.emit('error', err));
       }
@@ -242,8 +252,8 @@ function importData(targetTableName, inputFileName) {
 }
 
 function exportDataCli() {
-  if (!cli_filename || !cli_tablename) {
-    console.error('Error: --file and --table options are required for this action');
+  if (!cli_tablename) {
+    console.error('Error: --table option is required for this action');
     cli.showHelp();
     return false;
   }
